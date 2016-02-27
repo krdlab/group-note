@@ -1,0 +1,92 @@
+name:                api-server
+version:             0.1.0.0
+synopsis:            Initial project template from stack
+description:         Please see README.md
+homepage:            http://github.com/krdlab/group-note/api-server#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Sho Kuroda
+maintainer:          Sho Kuroda <krdlab@gmail.com>
+copyright:           (c) 2016 Sho Kuroda
+category:            Web
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  ghc-options:         -Wall
+  exposed-modules:     GroupNote
+                     , GroupNote.DB
+                     , GroupNote.Model
+                     , GroupNote.Model.AccessToken
+                     , GroupNote.Model.Invite
+                     , GroupNote.Model.Member
+                     , GroupNote.Model.Session
+                     , GroupNote.Model.SessionState
+                     , GroupNote.Model.SessionWithInvite
+                     , GroupNote.Model.Team
+                     , GroupNote.Model.User
+                     , GroupNote.Model.UserSession
+                     , GroupNote.OpenId
+                     , GroupNote.Random
+                     , GroupNote.Server
+                     , GroupNote.Server.Auth
+                     , GroupNote.Server.Combinators
+                     , GroupNote.Server.Resource
+                     , GroupNote.Types
+  build-depends:       base >= 4.7 && < 5
+                     , aeson >= 0.10
+                     , servant-server
+                     , wai
+                     , warp
+                     , bytestring
+                     , text
+                     , servant-lucid
+                     , lucid
+                     , either
+                     , oidc-client
+                     , jose-jwt >= 0.7
+                     , mtl
+                     , transformers
+                     , cprng-aes
+                     , crypto-random
+                     , base32-bytestring
+                     , containers
+                     , http-client
+                     , http-client-tls
+                     , http-types
+                     , cookie
+                     , exceptions
+                     , names-th
+                     , persistable-record
+                     , relational-query
+                     , relational-query-HDBC
+                     , relational-record
+                     , HDBC
+                     , HDBC-session
+                     , HDBC-sqlite3
+                     , template-haskell
+                     , time
+  default-language:    Haskell2010
+
+executable api-server-exe
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , api-server
+  default-language:    Haskell2010
+
+test-suite api-server-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , api-server
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/krdlab/group-note/api-server
