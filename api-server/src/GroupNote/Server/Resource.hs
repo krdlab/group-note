@@ -26,20 +26,24 @@ import GroupNote.Server.Combinators
 import qualified GroupNote.OpenId as GO
 import qualified GroupNote.Model as Model
 import GroupNote.Model (SessionToken, InviteCode)
-import GroupNote.Model.Team (Team)
+import GroupNote.Model.Team (Team, NewTeamReq(..))
 import GroupNote.Model.User (User)
+import qualified GroupNote.Model.User as User
 import GroupNote.Random
 import GroupNote.Types
 
 type API =
          Authorized User :> "teams" :> Get '[JSON] [Team]
-    :<|> Authorized User :> "teams" :> ReqBody '[JSON] ReqTeam :> Post '[JSON] Team
+    :<|> Authorized User :> "teams" :> ReqBody '[JSON] NewTeamReq :> Post '[JSON] Team
 
 server :: Server API
 server = getTeamsH :<|> postTeamsH
   where
-    getTeamsH     = getTeams
-    postTeamsH    = undefined -- TODO
+    getTeamsH   = getTeams
+    postTeamsH  = postTeams
 
 getTeams :: User -> EitherT ServantErr IO [Team]
-getTeams _ = liftIO Model.dummyTeams
+getTeams u = liftIO $ Model.listTeams (User.id u)
+
+postTeams :: User -> NewTeamReq -> EitherT ServantErr IO Team
+postTeams u r = liftIO $ Model.createTeam (User.id u) r

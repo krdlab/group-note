@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module GroupNote.Types where
@@ -36,13 +34,6 @@ instance FromFormUrlEncoded RegUserParams where
         lookup' key = case lookup key ps of
             Just v  -> Right v
             Nothing -> Left . unpack $ key <> " not found"
-
-data ReqTeam = ReqTeam
-    { teamIdName :: Text
-    , teamName   :: Text
-    }
-    deriving (Eq, Show)
-$(deriveJSON defaultOptions{fieldLabelModifier = camelTo2 '_'} ''ReqTeam)
 
 type OidcError = String
 

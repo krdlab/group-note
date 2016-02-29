@@ -6,6 +6,7 @@ import Control.Exception (Exception)
 import Control.Monad (when, void)
 import Control.Monad.Catch (throwM)
 import Data.ByteString (ByteString)
+import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Time (utcToLocalTime, getCurrentTimeZone, getCurrentTime, LocalTime)
@@ -25,8 +26,9 @@ import GroupNote.Model.Session (Session, session)
 import qualified GroupNote.Model.SessionWithInvite as SessionWithInvite
 import GroupNote.Model.SessionWithInvite (sessionWithInvite, piSessionWithInvite, InsertSessionWithInvite(..))
 import qualified GroupNote.Model.Team as Team
-import GroupNote.Model.Team (Team, team)
+import GroupNote.Model.Team (Team, team, NewTeamReq(..))
 import qualified GroupNote.Model.Member as Member
+import GroupNote.Model.Member (member)
 import qualified GroupNote.Model.User as User
 import GroupNote.Model.User (User, user, InsertUser(..), piUser)
 import qualified GroupNote.Model.UserSession as UserSession
@@ -44,6 +46,7 @@ instance Exception ModelError
 type InviteCode = Text
 type SessionToken = Text
 type AccessToken = Text
+type UserId = Int64
 
 findUserByAccessToken :: AccessToken -> IO (Maybe User)
 findUserByAccessToken token = reference $ \conn ->
@@ -201,10 +204,34 @@ login sid iss sub = transaction $ \conn -> do
                     _ <- runInsert conn (derivedInsert piUserSession) insUserSession
                     return . Right $ u
 
-dummyTeams :: IO [Team]
-dummyTeams = do
+listTeams :: UserId -> IO [Team]
+listTeams uid = reference $ \conn -> select' conn queryTeamByUserId uid
+
+createTeam :: UserId -> NewTeamReq -> IO Team
+createTeam uid req = do
+    let iname = Team.reqIdName req
+        dname = Team.reqName req
     time <- getCurrentLocalTime
-    return [Team.Team 1 "id_name" "name" 1 time time 1] -- TODO
+    transaction $ \conn -> do
+        _ <- runInsert conn (insertTeam iname dname uid time) ()
+        t <- head <$> select' conn queryTeamByIdName iname
+        let tid = Team.id t
+        _ <- runInsert conn (insertMember tid uid time) ()
+        return t
+  where
+    insertTeam iname dname oid time = derivedInsertValue $ do
+        Team.idName'    <-# value iname
+        Team.name'      <-# value dname
+        Team.ownerId'   <-# value oid
+        Team.createdAt' <-# value time
+        Team.updatedAt' <-# value time
+        Team.version'   <-# value 1
+        return unitPlaceHolder
+    insertMember tid uid' time = derivedInsertValue $ do
+        Member.teamId'      <-# value tid
+        Member.userId'      <-# value uid'
+        Member.createdAt'   <-# value time
+        return unitPlaceHolder
 
 -- relations
 
@@ -272,6 +299,21 @@ queryStateBySessionToken = relation' . placeholder $ \ph -> do
     on $ s ! Session.id' .=. ss ! SessionState.sessionId'
     wheres $ s ! Session.token' .=. ph
     return ss
+
+queryTeamByUserId :: Relation UserId Team
+queryTeamByUserId = relation' . placeholder $ \ph -> do
+    m <- query member
+    t <- query team
+    on $ m ! Member.teamId' .=. t ! Team.id'
+    wheres $ m ! Member.userId' .=. ph
+    asc $ t ! Team.name'
+    return t
+
+queryTeamByIdName :: Relation Text Team
+queryTeamByIdName = relation' . placeholder $ \ph -> do
+    t <- query team
+    wheres $ t ! Team.idName' .=. ph
+    return t
 
 -- helpers
 
