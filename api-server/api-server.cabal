@@ -19,7 +19,7 @@ library
   exposed-modules:     GroupNote
                      , GroupNote.DB
                      , GroupNote.Model
-                     , GroupNote.Model.AccessToken
+                     , GroupNote.Model.Authorization
                      , GroupNote.Model.Invite
                      , GroupNote.Model.Member
                      , GroupNote.Model.Session

@@ -87,17 +87,17 @@ CREATE TABLE IF NOT EXISTS `user_session` (
 );
 CREATE INDEX `fk_user_session_user_idx` ON `user_session` (`user_id`);
 
-DROP TABLE IF EXISTS `access_token`;
-CREATE TABLE IF NOT EXISTS `access_token` (
-  `session_id`  INTEGER     NOT NULL PRIMARY KEY,
-  `token`       VARCHAR(64) NOT NULL,
-  `user_id`     INTEGER     NOT NULL,
-  `created_at`  DATETIME    NOT NULL,
-  CONSTRAINT `access_token_UNIQUE` UNIQUE (`token`),
-  CONSTRAINT `fk_access_token_session` FOREIGN KEY (`session_id`) REFERENCES `sessoin` (`id`),
-  CONSTRAINT `fk_access_token_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+DROP TABLE IF EXISTS `authorization`;
+CREATE TABLE IF NOT EXISTS `authorization` (
+  `session_id`      INTEGER     NOT NULL PRIMARY KEY,
+  `access_token`    VARCHAR(64) NOT NULL,
+  `user_id`         INTEGER     NOT NULL,
+  `created_at`      DATETIME    NOT NULL,
+  CONSTRAINT `authorization_UNIQUE` UNIQUE (`access_token`),
+  CONSTRAINT `fk_authorization_session` FOREIGN KEY (`session_id`) REFERENCES `sessoin` (`id`),
+  CONSTRAINT `fk_authorization_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
 );
-CREATE INDEX `fk_access_token_user_idx` ON `access_token` (`user_id`);
+CREATE INDEX `fk_authorization_user_idx` ON `authorization` (`user_id`);
 
 DROP TABLE IF EXISTS `note`;
 CREATE TABLE IF NOT EXISTS `note` (

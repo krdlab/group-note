@@ -33,8 +33,8 @@ import qualified GroupNote.Model.UserSession as UserSession
 import GroupNote.Model.UserSession (userSession, InsertUserSession(..), piUserSession)
 import qualified GroupNote.Model.SessionState as SessionState
 import GroupNote.Model.SessionState (SessionState, sessionState)
-import qualified GroupNote.Model.AccessToken as AccessToken
-import GroupNote.Model.AccessToken (accessToken)
+import qualified GroupNote.Model.Authorization as Authorization
+import GroupNote.Model.Authorization (authorization)
 
 data ModelError = ResourceNotFound String
     deriving (Eq, Show)
@@ -43,8 +43,9 @@ instance Exception ModelError
 
 type InviteCode = Text
 type SessionToken = Text
+type AccessToken = Text
 
-findUserByAccessToken :: Text -> IO (Maybe User)
+findUserByAccessToken :: AccessToken -> IO (Maybe User)
 findUserByAccessToken token = reference $ \conn ->
     headMaybe <$> select' conn queryUserByAccessToken token
 
@@ -52,16 +53,16 @@ findUserBySession :: SessionToken -> IO (Maybe User)
 findUserBySession token = reference $ \conn ->
     headMaybe <$> select' conn queryUserBySessionToken token
 
-saveAccessToken :: User -> Text -> IO ()
-saveAccessToken u at = do
+saveAccessToken :: User -> AccessToken -> IO ()
+saveAccessToken u t = do
     time <- getCurrentLocalTime
     transaction $ \conn ->
-        void $ runInsert conn (insertAccessToken time) ()
+        void $ runInsert conn (insertAuthorization (User.id u) t time) ()
   where
-    insertAccessToken time = derivedInsertValue $ do
-        AccessToken.userId'     <-# value (User.id u)
-        AccessToken.token'      <-# value at
-        AccessToken.createdAt'  <-# value time
+    insertAuthorization uid token time = derivedInsertValue $ do
+        Authorization.userId'       <-# value uid
+        Authorization.accessToken'  <-# value token
+        Authorization.createdAt'    <-# value time
         return unitPlaceHolder
 
 startAuthSession :: SessionToken -> O.State -> Maybe InviteCode -> IO ()
@@ -207,12 +208,12 @@ dummyTeams = do
 
 -- relations
 
-queryUserByAccessToken :: Relation Text User
+queryUserByAccessToken :: Relation AccessToken User
 queryUserByAccessToken = relation' . placeholder $ \ph -> do
-    at <- query accessToken
-    u  <- query user
-    on $ at ! AccessToken.userId' .=. u ! User.id'
-    wheres $ at ! AccessToken.token' .=. ph
+    a <- query authorization
+    u <- query user
+    on $ a ! Authorization.userId' .=. u ! User.id'
+    wheres $ a ! Authorization.accessToken' .=. ph
     return u
 
 queryUserByOpenId :: Relation (Text, Text) User
