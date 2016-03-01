@@ -38,7 +38,9 @@ import GroupNote.Model.SessionState (SessionState, sessionState)
 import qualified GroupNote.Model.Authorization as Authorization
 import GroupNote.Model.Authorization (authorization)
 
-data ModelError = ResourceNotFound String
+data ModelError =
+      Forbidden String
+    | ResourceNotFound String
     deriving (Eq, Show)
 
 instance Exception ModelError
@@ -47,6 +49,7 @@ type InviteCode = Text
 type SessionToken = Text
 type AccessToken = Text
 type UserId = Int64
+type TeamId = Int64
 
 findUserByAccessToken :: AccessToken -> IO (Maybe User)
 findUserByAccessToken token = reference $ \conn ->
@@ -233,6 +236,21 @@ createTeam uid req = do
         Member.createdAt'   <-# value time
         return unitPlaceHolder
 
+createInvite :: UserId -> TeamId -> IO InviteCode
+createInvite uid tid = do
+    code <- decodeUtf8 <$> genToken 32
+    transaction $ \conn -> do
+        ts <- select' conn queryTeamByIdAndOwnerId (tid, uid)
+        when (null ts) $
+            throwM $ Forbidden "user is not owner"
+        void $ runInsert conn (insertInvite code tid) ()
+    return code
+  where
+    insertInvite code' tid' = derivedInsertValue $ do
+        Invite.code'    <-# value code'
+        Invite.teamId'  <-# value tid'
+        return unitPlaceHolder
+
 -- relations
 
 queryUserByAccessToken :: Relation AccessToken User
@@ -313,6 +331,12 @@ queryTeamByIdName :: Relation Text Team
 queryTeamByIdName = relation' . placeholder $ \ph -> do
     t <- query team
     wheres $ t ! Team.idName' .=. ph
+    return t
+
+queryTeamByIdAndOwnerId :: Relation (TeamId, UserId) Team
+queryTeamByIdAndOwnerId = relation' . placeholder $ \ph -> do
+    t <- query team
+    wheres $ t ! Team.id' .=. ph ! fst' `and'` t ! Team.ownerId' .=. ph ! snd'
     return t
 
 -- helpers
