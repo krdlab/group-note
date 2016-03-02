@@ -28,7 +28,7 @@ import GroupNote.Model.SessionWithInvite (sessionWithInvite, piSessionWithInvite
 import qualified GroupNote.Model.Team as Team
 import GroupNote.Model.Team (Team, team, NewTeamReq(..))
 import qualified GroupNote.Model.Member as Member
-import GroupNote.Model.Member (member)
+import GroupNote.Model.Member (member, MemberRes(..))
 import qualified GroupNote.Model.User as User
 import GroupNote.Model.User (User, user, InsertUser(..), piUser)
 import qualified GroupNote.Model.UserSession as UserSession
@@ -251,6 +251,12 @@ createInvite uid tid = do
         Invite.teamId'  <-# value tid'
         return unitPlaceHolder
 
+listMembers :: UserId -> TeamId -> IO [MemberRes]
+listMembers uid tid = reference $ \conn ->
+    map toRes <$> select' conn queryUserByTeamIdAndOwnerId (tid, uid)
+  where
+    toRes u = MemberRes (User.idName u) (User.name u)
+
 -- relations
 
 queryUserByAccessToken :: Relation AccessToken User
@@ -338,6 +344,15 @@ queryTeamByIdAndOwnerId = relation' . placeholder $ \ph -> do
     t <- query team
     wheres $ t ! Team.id' .=. ph ! fst' `and'` t ! Team.ownerId' .=. ph ! snd'
     return t
+
+queryUserByTeamIdAndOwnerId :: Relation (TeamId, UserId) User
+queryUserByTeamIdAndOwnerId = relation' $ do
+    (phT, t) <- query' queryTeamByIdAndOwnerId
+    m <- query member
+    u <- query user
+    on $ t ! Team.id' .=. m ! Member.teamId'
+    on $ m ! Member.userId' .=. u ! User.id'
+    return (phT, u)
 
 -- helpers
 
