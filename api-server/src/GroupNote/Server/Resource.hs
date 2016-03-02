@@ -5,7 +5,7 @@
 
 module GroupNote.Server.Resource where
 
-import Control.Exception (SomeException)
+import Control.Exception (Exception, SomeException)
 import Control.Monad.Catch (catches, Handler(..))
 import Control.Monad.IO.Class
 import Control.Monad.Reader
@@ -54,6 +54,9 @@ postInvite :: User -> TeamId -> EitherT ServantErr IO Text
 postInvite u tid = liftIO (Model.createInvite (User.id u) tid) `catches` handlers
   where
     handlers = map Handler
-        [ \e@(Model.Forbidden _) -> left err403 {errBody = BLC.pack . show $ e}
-        , \e@(Model.ResourceNotFound _) -> left err404 {errBody = BLC.pack . show $ e}
+        [ \e@(Model.Forbidden _)        -> response err403 e
+        , \e@(Model.ResourceNotFound _) -> response err404 e
         ]
+
+response :: Exception err => ServantErr -> err -> EitherT ServantErr IO a
+response s e = left s {errBody = BLC.pack . show $ e}
