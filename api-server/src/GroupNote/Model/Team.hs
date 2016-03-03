@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module GroupNote.Model.Team where
 
@@ -20,4 +21,6 @@ data NewTeamReq = NewTeamReq
     , reqName   :: Text
     }
     deriving (Eq, Show)
-$(deriveJSON defaultOptions{fieldLabelModifier = camelTo2 '_'} ''NewTeamReq)
+instance FromJSON NewTeamReq where
+    parseJSON = withObject "NewTeamReq" $ \o ->
+        NewTeamReq <$> o .: "id_name" <*> o .: "name"
