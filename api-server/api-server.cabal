@@ -22,6 +22,7 @@ library
                      , GroupNote.Model.Authorization
                      , GroupNote.Model.Invite
                      , GroupNote.Model.Member
+                     , GroupNote.Model.Note
                      , GroupNote.Model.Session
                      , GroupNote.Model.SessionState
                      , GroupNote.Model.SessionWithInvite

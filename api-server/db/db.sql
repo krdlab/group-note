@@ -103,10 +103,10 @@ DROP TABLE IF EXISTS `note`;
 CREATE TABLE IF NOT EXISTS `note` (
   `id`          INTEGER     NOT NULL PRIMARY KEY AUTOINCREMENT,
   `id_name`     VARCHAR(64) NOT NULL,
-  `team_id`    INTEGER     NOT NULL,
+  `team_id`     INTEGER     NOT NULL,
   `member_id`   INTEGER     NOT NULL,
   `title`       TEXT        NOT NULL,
-  `content`     MEDIUMTEXT  NOT NULL,
+  `content`     TEXT        NOT NULL,
   `created_at`  DATETIME    NOT NULL,
   `updated_at`  DATETIME    NOT NULL,
   `version`     INTEGER     NOT NULL,

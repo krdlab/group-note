@@ -29,6 +29,8 @@ import qualified GroupNote.Model.Team as Team
 import GroupNote.Model.Team (Team, team, NewTeamReq(..))
 import qualified GroupNote.Model.Member as Member
 import GroupNote.Model.Member (member, MemberRes(..))
+import qualified GroupNote.Model.Note as Note
+import GroupNote.Model.Note (Note, note)
 import qualified GroupNote.Model.User as User
 import GroupNote.Model.User (User, user, InsertUser(..), piUser)
 import qualified GroupNote.Model.UserSession as UserSession
@@ -268,6 +270,10 @@ listMembers uid tid = reference $ \conn ->
   where
     toRes u = MemberRes (User.idName u) (User.name u)
 
+listNotes :: UserId -> TeamId -> IO [Note]
+listNotes uid tid = reference $ \conn ->
+    select' conn queryNoteByTeamIdAndOwnerId (tid, uid)
+
 -- relations
 
 queryUserByAccessToken :: Relation AccessToken User
@@ -364,6 +370,14 @@ queryUserByTeamIdAndOwnerId = relation' $ do
     on $ t ! Team.id' .=. m ! Member.teamId'
     on $ m ! Member.userId' .=. u ! User.id'
     return (phT, u)
+
+queryNoteByTeamIdAndOwnerId :: Relation (TeamId, UserId) Note
+queryNoteByTeamIdAndOwnerId = relation' $ do
+    (phT, t) <- query' queryTeamByIdAndOwnerId
+    n <- query note
+    on $ t ! Team.id' .=. n ! Note.teamId'
+    desc $ n ! Note.updatedAt'
+    return (phT, n)
 
 -- helpers
 
