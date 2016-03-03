@@ -36,11 +36,12 @@ import GroupNote.Types
 type API =
          Authorized User :> "teams" :> Get '[JSON] [Team]
     :<|> Authorized User :> "teams" :> ReqBody '[JSON] NewTeamReq :> Post '[JSON] Team
+    :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> Delete '[] ()
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "invite-code" :> Post '[JSON] Text
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "members" :> Get '[JSON] [MemberRes]
 
 server :: Server API
-server = getTeams :<|> postTeams :<|> postInvite :<|> getMembers
+server = getTeams :<|> postTeams :<|> deleteTeam :<|> postInvite :<|> getMembers
 
 getTeams :: User -> EitherT ServantErr IO [Team]
 getTeams u = liftIO $ Model.listTeams (User.id u)
@@ -48,16 +49,20 @@ getTeams u = liftIO $ Model.listTeams (User.id u)
 postTeams :: User -> NewTeamReq -> EitherT ServantErr IO Team
 postTeams u r = liftIO $ Model.createTeam (User.id u) r
 
+deleteTeam :: User -> TeamId -> EitherT ServantErr IO ()
+deleteTeam u tid = liftIO (Model.deleteTeam (User.id u) tid) `catches` handlers
+
 postInvite :: User -> TeamId -> EitherT ServantErr IO Text
 postInvite u tid = liftIO (Model.createInvite (User.id u) tid) `catches` handlers
-  where
-    handlers = map Handler
-        [ \e@(Model.Forbidden _)        -> response err403 e
-        , \e@(Model.ResourceNotFound _) -> response err404 e
-        ]
 
 getMembers :: User -> TeamId -> EitherT ServantErr IO [MemberRes]
 getMembers u tid = liftIO $ Model.listMembers (User.id u) tid
 
 response :: Exception err => ServantErr -> err -> EitherT ServantErr IO a
 response s e = left s {errBody = BLC.pack . show $ e}
+
+handlers :: [Handler (EitherT ServantErr IO) a]
+handlers = map Handler
+    [ \e@(Model.Forbidden _)        -> response err403 e
+    , \e@(Model.ResourceNotFound _) -> response err404 e
+    ]

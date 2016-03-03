@@ -11,7 +11,7 @@ import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Time (utcToLocalTime, getCurrentTimeZone, getCurrentTime, LocalTime)
 import Database.HDBC (IConnection)
-import Database.HDBC.Record (runQuery', runInsert, runUpdate)
+import Database.HDBC.Record (runQuery', runInsert, runUpdate, runDelete)
 import Database.Relational.Query
 import qualified Web.OIDC.Client as O
 
@@ -235,6 +235,17 @@ createTeam uid req = do
         Member.userId'      <-# value uid'
         Member.createdAt'   <-# value time
         return unitPlaceHolder
+
+deleteTeam :: UserId -> TeamId -> IO ()
+deleteTeam uid tid = transaction $ \conn -> do
+    ts <- select' conn queryTeamByIdAndOwnerId (tid, uid)
+    when (null ts) $
+        throwM $ Forbidden "cannot delete"
+    let t = head ts
+    void $ runDelete conn target (Team.id t)
+  where
+    target = derivedDelete $ \proj ->
+        fst <$> placeholder (\ph -> wheres $ proj ! Team.id' .=. ph)
 
 createInvite :: UserId -> TeamId -> IO InviteCode
 createInvite uid tid = do
