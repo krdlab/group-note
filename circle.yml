@@ -4,9 +4,11 @@ dependencies:
   pre:
     - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 575159689BEFB442
     - echo 'deb http://download.fpcomplete.com/ubuntu precise main'|sudo tee /etc/apt/sources.list.d/fpco.list
-    - sudo apt-get update && sudo apt-get install stack -y
+    - sudo apt-get update && sudo apt-get install -y stack
+    - sudo apt-get update && sudo apt-get install -y sqlite3 libsqlite3-dev
   override:
     - cd api-server && stack setup
+    - cd api-server && cat db/db.sql | sqlite3 groupnote.db
     - cd api-server && stack build
     - cd api-server && stack build --test --only-dependencies
 test:
