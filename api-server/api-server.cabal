@@ -17,6 +17,7 @@ library
   hs-source-dirs:      src
   ghc-options:         -Wall
   exposed-modules:     GroupNote
+                     , GroupNote.Config
                      , GroupNote.DB
                      , GroupNote.Model
                      , GroupNote.Model.Authorization
@@ -69,6 +70,7 @@ library
                      , HDBC-sqlite3
                      , template-haskell
                      , time
+                     , yaml
   default-language:    Haskell2010
 
 executable api-server-exe

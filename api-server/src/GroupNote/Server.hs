@@ -12,12 +12,12 @@ import Lucid
 import Servant
 import Servant.HTML.Lucid
 
-import GroupNote.Server.Combinators
+import GroupNote.Config (AppConf)
 import qualified GroupNote.Model as Model
 import GroupNote.Model (SessionToken)
 import qualified GroupNote.Server.Auth as Auth
+import GroupNote.Server.Combinators
 import qualified GroupNote.Server.Resource as Resource
-import GroupNote.Types
 
 type API =
          Auth.API

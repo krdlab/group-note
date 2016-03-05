@@ -24,11 +24,13 @@ import qualified Network.HTTP.Types as HTTP
 import Servant
 import qualified Web.OIDC.Client as O
 
-import GroupNote.Server.Combinators
+import qualified GroupNote.Config as Conf
+import GroupNote.Config (AppConf)
 import qualified GroupNote.OpenId as OpenId
 import qualified GroupNote.Model as Model
 import GroupNote.Model (SessionToken, InviteCode)
 import GroupNote.Random
+import GroupNote.Server.Combinators
 import GroupNote.Types
 
 type API =
@@ -136,7 +138,7 @@ newTlsManager :: IO HC.Manager
 newTlsManager = newManager tlsManagerSettings
 
 getProvider :: AppConf -> HC.Manager -> IO O.Provider
-getProvider conf = O.discover (confIssuerLocation conf)
+getProvider conf = O.discover (Conf.issuerLocation conf)
 
 newOIDC :: AppConf -> HC.Manager -> IO O.OIDC
 newOIDC conf mgr = do
@@ -146,9 +148,9 @@ newOIDC conf mgr = do
 setCredentials :: AppConf -> O.OIDC -> O.OIDC
 setCredentials conf = O.setCredentials clientId clientSecret redirectUri
   where
-    clientId     = confClientId conf
-    clientSecret = confClientSecret conf
-    redirectUri  = confRedirectUri conf
+    clientId     = Conf.clientId conf
+    clientSecret = Conf.clientSecret conf
+    redirectUri  = Conf.redirectUri conf
 
 responseFound :: ByteString -> EitherT ServantErr IO a
 responseFound loc = left err302 { errHeaders = [("Location", loc)] }

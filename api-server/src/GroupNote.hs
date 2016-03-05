@@ -2,23 +2,24 @@
 
 module GroupNote (start) where
 
-import qualified Data.ByteString.Char8 as B
-import qualified Data.Text as T
 import Network.Wai (Application)
 import Network.Wai.Handler.Warp (run)
 import Servant
-import System.Environment (getEnv)
+import System.Environment (getArgs)
 
-import GroupNote.Types
+import GroupNote.Config (load, AppConf(..))
 import GroupNote.Server
 
 start :: IO ()
 start = do
-    conf <- AppConf
-        <$> (T.pack <$> getEnv "OPENID_ISSUER_LOCATION")
-        <*> (B.pack <$> getEnv "OPENID_CLIENT_ID")
-        <*> (B.pack <$> getEnv "OPENID_CLIENT_SECRET")
-        <*> (B.pack <$> getEnv "OPENID_REDIRECT_URI")
+    args <- getArgs
+    conf <- case args of
+        [path] -> do
+            res <- load path
+            case res of
+                Right c -> return c
+                Left  e -> error . show $ e
+        _      -> error "usage: api-server <configuration file path>"
     run 3000 $ app conf
 
 app :: AppConf -> Application

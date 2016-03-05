@@ -12,14 +12,6 @@ import Data.Text (Text, unpack)
 import Data.Text.Encoding (encodeUtf8)
 import Servant
 
-data AppConf = AppConf
-    { confIssuerLocation :: Text
-    , confClientId     :: ByteString
-    , confClientSecret :: ByteString
-    , confRedirectUri  :: ByteString
-    }
-    deriving (Show, Eq)
-
 --type CookieHeader = '[Header "Set-Cookie" Text]
 --type Authorized   = Header "Authorization" Text
 
