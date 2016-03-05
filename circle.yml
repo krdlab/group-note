@@ -6,11 +6,9 @@ dependencies:
     - echo 'deb http://download.fpcomplete.com/ubuntu precise main'|sudo tee /etc/apt/sources.list.d/fpco.list
     - sudo apt-get update && sudo apt-get install stack -y
   override:
-    - cd ~/group-note/api-server
-    - stack setup
-    - stack build
-    - stack build --test --only-dependencies
+    - cd api-server && stack setup
+    - cd api-server && stack build
+    - cd api-server && stack build --test --only-dependencies
 test:
   override:
-    - cd ~/group-note/api-server
-    - stack test
+    - cd api-server && stack test
