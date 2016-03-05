@@ -27,8 +27,9 @@ config =  defaultConfig { normalizedTableName = False }
 
 convTypes :: [(String, TypeQ)]
 convTypes =
-    [ ("datetime", [t|LocalTime|])
-    , ("varchar", [t|Text|])
+    [ ("datetime",  [t|LocalTime|])
+    , ("varchar",   [t|Text|])
+    , ("text",      [t|Text|])
     ]
 
 defineTable :: String -> [Name] -> Q [Dec]

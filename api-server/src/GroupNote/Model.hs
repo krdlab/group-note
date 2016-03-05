@@ -28,9 +28,9 @@ import GroupNote.Model.SessionWithInvite (sessionWithInvite, piSessionWithInvite
 import qualified GroupNote.Model.Team as Team
 import GroupNote.Model.Team (Team, team, NewTeamReq(..))
 import qualified GroupNote.Model.Member as Member
-import GroupNote.Model.Member (member, MemberRes(..))
+import GroupNote.Model.Member (Member, member, MemberRes(..))
 import qualified GroupNote.Model.Note as Note
-import GroupNote.Model.Note (Note, note)
+import GroupNote.Model.Note (Note, note, NewNoteReq)
 import qualified GroupNote.Model.User as User
 import GroupNote.Model.User (User, user, InsertUser(..), piUser)
 import qualified GroupNote.Model.UserSession as UserSession
@@ -274,6 +274,30 @@ listNotes :: UserId -> TeamId -> IO [Note]
 listNotes uid tid = reference $ \conn ->
     select' conn queryNoteByTeamIdAndOwnerId (tid, uid)
 
+createNote :: UserId -> TeamId -> NewNoteReq -> IO Note
+createNote uid tid n = do
+    idname <- decodeUtf8 <$> genToken 64
+    time   <- getCurrentLocalTime
+    transaction $ \conn -> do
+        ms <- select' conn queryMemberByTeamIdAndUserId (tid, uid)
+        when (null ms) $
+            throwM $ Forbidden "cannot create a new note in this team"
+        let title   = Note.reqTitle n
+            content = Note.reqContent n
+        void $ runInsert conn (insertNote idname title content time) ()
+    reference $ \conn -> head <$> select' conn queryNoteByIdName idname
+  where
+    insertNote idname title content time = derivedInsertValue $ do
+        Note.idName'    <-# value idname
+        Note.teamId'    <-# value tid
+        Note.memberId'  <-# value uid
+        Note.title'     <-# value title
+        Note.content'   <-# value content
+        Note.createdAt' <-# value time
+        Note.updatedAt' <-# value time
+        Note.version'   <-# value 1
+        return unitPlaceHolder
+
 -- relations
 
 queryUserByAccessToken :: Relation AccessToken User
@@ -378,6 +402,18 @@ queryNoteByTeamIdAndOwnerId = relation' $ do
     on $ t ! Team.id' .=. n ! Note.teamId'
     desc $ n ! Note.updatedAt'
     return (phT, n)
+
+queryMemberByTeamIdAndUserId :: Relation (TeamId, UserId) Member
+queryMemberByTeamIdAndUserId = relation' . placeholder $ \ph -> do
+    m <- query member
+    wheres $ m ! Member.teamId' .=. ph ! fst' `and'` m ! Member.userId' .=. ph ! snd'
+    return m
+
+queryNoteByIdName :: Relation Text Note
+queryNoteByIdName = relation' . placeholder $ \ph -> do
+    n <- query note
+    wheres $ n ! Note.idName' .=. ph
+    return n
 
 -- helpers
 

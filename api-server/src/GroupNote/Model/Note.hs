@@ -16,3 +16,10 @@ $(defineTable
     "note"
     [''Eq, ''Show])
 $(deriveJSON defaultOptions{fieldLabelModifier = camelTo2 '_'} ''Note)
+
+data NewNoteReq = NewNoteReq
+    { reqTitle   :: Text
+    , reqContent :: Text
+    }
+    deriving (Eq, Show)
+$(deriveFromJSON defaultOptions{fieldLabelModifier = camelTo2 '_'} ''NewNoteReq)

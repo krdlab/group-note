@@ -3,9 +3,6 @@
 module GroupNote.Types where
 
 import Control.Exception (Exception)
-import Data.Aeson
-import Data.Aeson.TH
-import Data.Aeson.Types (camelTo2)
 import Data.ByteString (ByteString)
 import Data.Monoid ((<>))
 import Data.Text (Text, unpack)

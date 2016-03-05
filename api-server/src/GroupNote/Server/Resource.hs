@@ -27,12 +27,10 @@ import qualified GroupNote.OpenId as GO
 import qualified GroupNote.Model as Model
 import GroupNote.Model (SessionToken, InviteCode, TeamId)
 import GroupNote.Model.Member (MemberRes)
-import GroupNote.Model.Note (Note)
-import GroupNote.Model.Team (Team, NewTeamReq(..))
+import GroupNote.Model.Note (Note, NewNoteReq)
+import GroupNote.Model.Team (Team, NewTeamReq)
 import GroupNote.Model.User (User)
 import qualified GroupNote.Model.User as User
-import GroupNote.Random
-import GroupNote.Types
 
 type API =
          Authorized User :> "teams" :> Get '[JSON] [Team]
@@ -41,6 +39,7 @@ type API =
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "invite-code" :> Post '[JSON] Text
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "members" :> Get '[JSON] [MemberRes]
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> Get '[JSON] [Note]
+    :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> ReqBody '[JSON] NewNoteReq :> Post '[JSON] Note
 
 server :: Server API
 server =
@@ -48,6 +47,7 @@ server =
     :<|> postInvite
     :<|> getMembers
     :<|> getNotes
+    :<|> postNote
 
 getTeams :: User -> EitherT ServantErr IO [Team]
 getTeams u = liftIO $ Model.listTeams (User.id u)
@@ -66,6 +66,9 @@ getMembers u tid = liftIO $ Model.listMembers (User.id u) tid
 
 getNotes :: User -> TeamId -> EitherT ServantErr IO [Note]
 getNotes u tid = liftIO $ Model.listNotes (User.id u) tid
+
+postNote :: User -> TeamId -> NewNoteReq -> EitherT ServantErr IO Note
+postNote u tid n = liftIO (Model.createNote (User.id u) tid n) `catches` handlers
 
 response :: Exception err => ServantErr -> err -> EitherT ServantErr IO a
 response s e = left s {errBody = BLC.pack . show $ e}
