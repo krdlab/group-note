@@ -17,8 +17,8 @@ $(defineTable
 $(deriveJSON defaultOptions{fieldLabelModifier = camelTo2 '_'} ''Team)
 
 data NewTeamReq = NewTeamReq
-    { reqIdName :: Text
-    , reqName   :: Text
+    { newIdName :: Text
+    , newName   :: Text
     }
     deriving (Eq, Show)
 instance FromJSON NewTeamReq where

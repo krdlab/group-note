@@ -5,27 +5,17 @@
 
 module GroupNote.Server.Resource where
 
-import Control.Exception (Exception, SomeException)
+import Control.Exception (Exception)
 import Control.Monad.Catch (catches, Handler(..))
 import Control.Monad.IO.Class
-import Control.Monad.Reader
 import Control.Monad.Trans.Either
-import Data.ByteString (ByteString)
-import qualified Data.ByteString.Char8 as B
-import Data.ByteString.Char8 (pack)
 import qualified Data.ByteString.Lazy.Char8 as BLC
-import Data.Maybe (fromMaybe)
-import Data.Monoid ((<>))
 import Data.Text (Text)
-import qualified Data.Text as T
-import Data.Text.Encoding (decodeUtf8, encodeUtf8)
-import qualified Network.HTTP.Types as HTTP
 import Servant
 
 import GroupNote.Server.Combinators
-import qualified GroupNote.OpenId as GO
 import qualified GroupNote.Model as Model
-import GroupNote.Model (SessionToken, InviteCode, TeamId, NoteId)
+import GroupNote.Model (TeamId, NoteId)
 import GroupNote.Model.Member (MemberRes)
 import GroupNote.Model.Note (Note, NewNoteReq)
 import GroupNote.Model.Team (Team, NewTeamReq, UpdateTeamReq)

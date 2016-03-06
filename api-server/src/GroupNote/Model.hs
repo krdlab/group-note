@@ -27,7 +27,7 @@ import GroupNote.Model.Session (Session, session)
 import qualified GroupNote.Model.SessionWithInvite as SessionWithInvite
 import GroupNote.Model.SessionWithInvite (sessionWithInvite, piSessionWithInvite, InsertSessionWithInvite(..))
 import qualified GroupNote.Model.Team as Team
-import GroupNote.Model.Team (Team, team, NewTeamReq(..), UpdateTeamReq)
+import GroupNote.Model.Team (Team, team, NewTeamReq, UpdateTeamReq)
 import qualified GroupNote.Model.Member as Member
 import GroupNote.Model.Member (Member, member, MemberRes(..))
 import qualified GroupNote.Model.Note as Note
@@ -216,8 +216,8 @@ listTeams uid = reference $ \conn -> select' conn queryTeamByUserId uid
 
 createTeam :: UserId -> NewTeamReq -> IO Team
 createTeam uid req = do
-    let iname = Team.reqIdName req
-        dname = Team.reqName req
+    let iname = Team.newIdName req
+        dname = Team.newName req
     time <- getCurrentLocalTime
     transaction $ \conn -> do
         _ <- runInsert conn (insertTeam iname dname uid time) ()
