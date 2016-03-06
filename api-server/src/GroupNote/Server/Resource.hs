@@ -25,7 +25,7 @@ import Servant
 import GroupNote.Server.Combinators
 import qualified GroupNote.OpenId as GO
 import qualified GroupNote.Model as Model
-import GroupNote.Model (SessionToken, InviteCode, TeamId)
+import GroupNote.Model (SessionToken, InviteCode, TeamId, NoteId)
 import GroupNote.Model.Member (MemberRes)
 import GroupNote.Model.Note (Note, NewNoteReq)
 import GroupNote.Model.Team (Team, NewTeamReq)
@@ -40,6 +40,9 @@ type API =
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "members" :> Get '[JSON] [MemberRes]
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> Get '[JSON] [Note]
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> ReqBody '[JSON] NewNoteReq :> Post '[JSON] Note
+    :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> Capture "nid" NoteId :> Get '[JSON] Note
+    :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> Capture "nid" NoteId :> ReqBody '[JSON] NewNoteReq :> Put '[JSON] Note
+    :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> Capture "nid" NoteId :> Delete '[] ()
 
 server :: Server API
 server =
@@ -48,6 +51,7 @@ server =
     :<|> getMembers
     :<|> getNotes
     :<|> postNote
+    :<|> getNote :<|> putNote :<|> deleteNote
 
 getTeams :: User -> EitherT ServantErr IO [Team]
 getTeams u = liftIO $ Model.listTeams (User.id u)
@@ -70,8 +74,22 @@ getNotes u tid = liftIO $ Model.listNotes (User.id u) tid
 postNote :: User -> TeamId -> NewNoteReq -> EitherT ServantErr IO Note
 postNote u tid n = liftIO (Model.createNote (User.id u) tid n) `catches` handlers
 
+getNote :: User -> TeamId -> NoteId -> EitherT ServantErr IO Note
+getNote u tid nid = liftIO (Model.getNote (User.id u) tid nid) `catches` handlers
+
+putNote :: User -> TeamId -> NoteId -> NewNoteReq -> EitherT ServantErr IO Note
+putNote u tid nid note = liftIO (Model.updateNote (User.id u) tid nid note) `catches` handlers
+
+deleteNote :: User -> TeamId -> NoteId -> EitherT ServantErr IO ()
+deleteNote u tid nid = liftIO (Model.deleteNote (User.id u) tid nid) `catches` handlers
+
+--- helpers
+
 response :: Exception err => ServantErr -> err -> EitherT ServantErr IO a
-response s e = left s {errBody = BLC.pack . show $ e}
+response se err = response' se $ show err
+
+response' :: ServantErr -> String -> EitherT ServantErr IO a
+response' se str = left se {errBody = BLC.pack str}
 
 handlers :: [Handler (EitherT ServantErr IO) a]
 handlers = map Handler

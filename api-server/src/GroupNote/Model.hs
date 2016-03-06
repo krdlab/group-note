@@ -7,6 +7,7 @@ import Control.Monad (when, void)
 import Control.Monad.Catch (throwM)
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
+import Data.Monoid ((<>))
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Time (utcToLocalTime, getCurrentTimeZone, getCurrentTime, LocalTime)
@@ -52,6 +53,7 @@ type SessionToken = Text
 type AccessToken = Text
 type UserId = Int64
 type TeamId = Int64
+type NoteId = Int64
 
 findUserByAccessToken :: AccessToken -> IO (Maybe User)
 findUserByAccessToken token = reference $ \conn ->
@@ -298,6 +300,40 @@ createNote uid tid n = do
         Note.version'   <-# value 1
         return unitPlaceHolder
 
+getNote :: UserId -> TeamId -> NoteId -> IO Note
+getNote uid tid nid = reference $ \conn -> do
+    mnote <- headMaybe <$> select' conn queryNoteByUniqueIds ((tid, uid), nid)
+    case mnote of
+        Just n  -> return n
+        Nothing -> throwM $ ResourceNotFound $ "note not found: id = " <> show nid
+
+updateNote :: UserId -> TeamId -> NoteId -> NewNoteReq -> IO Note
+updateNote uid tid nid nn = do
+    time <- getCurrentLocalTime
+    transaction $ \conn -> do
+        ns <- select' conn queryNoteByUniqueIds ((tid, uid), nid)
+        when (null ns) $
+            throwM $ ResourceNotFound "note not found"
+        void $ runUpdate conn note'(((Note.reqTitle nn, Note.reqContent nn), time), nid)
+    reference $ \conn -> head <$> select' conn queryNoteById nid
+  where
+    note' = derivedUpdate $ \proj -> do
+        (phTitle,   ()) <- placeholder (\ph -> Note.title' <-# ph)
+        (phContent, ()) <- placeholder (\ph -> Note.content' <-# ph)
+        (phUpdated, ()) <- placeholder (\ph -> Note.updatedAt' <-# ph)
+        (phNid,     ()) <- placeholder (\ph -> wheres $ proj ! Note.id' .=. ph)
+        return (phTitle >< phContent >< phUpdated >< phNid)
+
+deleteNote :: UserId -> TeamId -> NoteId -> IO ()
+deleteNote uid tid nid = transaction $ \conn -> do
+    ns <- select' conn queryNoteByUniqueIds ((tid, uid), nid)
+    when (null ns) $
+        throwM $ ResourceNotFound "note not found"
+    void $ runDelete conn target nid
+  where
+    target = derivedDelete $ \proj ->
+        fst <$> placeholder (\ph -> wheres $ proj ! Note.id' .=. ph)
+
 -- relations
 
 queryUserByAccessToken :: Relation AccessToken User
@@ -414,6 +450,20 @@ queryNoteByIdName = relation' . placeholder $ \ph -> do
     n <- query note
     wheres $ n ! Note.idName' .=. ph
     return n
+
+queryNoteById :: Relation NoteId Note
+queryNoteById = relation' . placeholder $ \ph -> do
+    n <- query note
+    wheres $ n ! Note.id' .=. ph
+    return n
+
+queryNoteByUniqueIds :: Relation ((TeamId, UserId), NoteId) Note
+queryNoteByUniqueIds = relation' $ do
+    (phM, m) <- query' queryMemberByTeamIdAndUserId
+    n <- query note
+    on $ m ! Member.id' .=. n ! Note.memberId'
+    (phN, ()) <- placeholder (\ph -> on $ n ! Note.id' .=. ph)
+    return (phM >< phN, n)
 
 -- helpers
 
