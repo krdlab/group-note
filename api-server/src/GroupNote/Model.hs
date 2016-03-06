@@ -31,7 +31,7 @@ import GroupNote.Model.Team (Team, team, NewTeamReq, UpdateTeamReq)
 import qualified GroupNote.Model.Member as Member
 import GroupNote.Model.Member (Member, member, MemberRes(..))
 import qualified GroupNote.Model.Note as Note
-import GroupNote.Model.Note (Note, note, NewNoteReq)
+import GroupNote.Model.Note (Note, note, NewNoteReq, UpdateNoteReq)
 import qualified GroupNote.Model.User as User
 import GroupNote.Model.User (User, user, InsertUser(..), piUser)
 import qualified GroupNote.Model.UserSession as UserSession
@@ -301,8 +301,8 @@ createNote uid tid n = do
         ms <- select' conn queryMemberByTeamIdAndUserId (tid, uid)
         when (null ms) $
             throwM $ Forbidden "cannot create a new note in this team"
-        let title   = Note.reqTitle n
-            content = Note.reqContent n
+        let title   = Note.newTitle n
+            content = Note.newContent n
         void $ runInsert conn (insertNote idname title content time) ()
     reference $ \conn -> head <$> select' conn queryNoteByIdName idname
   where
@@ -324,14 +324,14 @@ getNote uid tid nid = reference $ \conn -> do
         Just n  -> return n
         Nothing -> throwM $ ResourceNotFound $ "note not found: id = " <> show nid
 
-updateNote :: UserId -> TeamId -> NoteId -> NewNoteReq -> IO Note
-updateNote uid tid nid nn = do
+updateNote :: UserId -> TeamId -> NoteId -> UpdateNoteReq -> IO Note
+updateNote uid tid nid un = do
     time <- getCurrentLocalTime
     transaction $ \conn -> do
         ns <- select' conn queryNoteByUniqueIds ((tid, uid), nid)
         when (null ns) $
             throwM $ ResourceNotFound "note not found"
-        void $ runUpdate conn note'(((Note.reqTitle nn, Note.reqContent nn), time), nid)
+        void $ runUpdate conn note'((((Note.updateTitle un, Note.updateContent un), time), nid), Note.updateVersion un)
     reference $ \conn -> head <$> select' conn queryNoteById nid
   where
     note' = derivedUpdate $ \proj -> do
@@ -339,7 +339,8 @@ updateNote uid tid nid nn = do
         (phContent, ()) <- placeholder (\ph -> Note.content' <-# ph)
         (phUpdated, ()) <- placeholder (\ph -> Note.updatedAt' <-# ph)
         (phNid,     ()) <- placeholder (\ph -> wheres $ proj ! Note.id' .=. ph)
-        return (phTitle >< phContent >< phUpdated >< phNid)
+        (phVersion, ()) <- placeholder (\ph -> wheres $ proj ! Note.version' .=. ph)
+        return (phTitle >< phContent >< phUpdated >< phNid >< phVersion)
 
 deleteNote :: UserId -> TeamId -> NoteId -> IO ()
 deleteNote uid tid nid = transaction $ \conn -> do

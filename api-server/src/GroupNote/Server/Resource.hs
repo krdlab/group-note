@@ -17,7 +17,7 @@ import GroupNote.Server.Combinators
 import qualified GroupNote.Model as Model
 import GroupNote.Model (TeamId, NoteId)
 import GroupNote.Model.Member (MemberRes)
-import GroupNote.Model.Note (Note, NewNoteReq)
+import GroupNote.Model.Note (Note, NewNoteReq, UpdateNoteReq)
 import GroupNote.Model.Team (Team, NewTeamReq, UpdateTeamReq)
 import GroupNote.Model.User (User)
 import qualified GroupNote.Model.User as User
@@ -32,7 +32,7 @@ type API =
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> Get '[JSON] [Note]
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> ReqBody '[JSON] NewNoteReq :> Post '[JSON] Note
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> Capture "nid" NoteId :> Get '[JSON] Note
-    :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> Capture "nid" NoteId :> ReqBody '[JSON] NewNoteReq :> Put '[JSON] Note
+    :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> Capture "nid" NoteId :> ReqBody '[JSON] UpdateNoteReq :> Put '[JSON] Note
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "notes" :> Capture "nid" NoteId :> Delete '[] ()
 
 server :: Server API
@@ -71,7 +71,7 @@ postNote u tid n = liftIO (Model.createNote (User.id u) tid n) `catches` handler
 getNote :: User -> TeamId -> NoteId -> EitherT ServantErr IO Note
 getNote u tid nid = liftIO (Model.getNote (User.id u) tid nid) `catches` handlers
 
-putNote :: User -> TeamId -> NoteId -> NewNoteReq -> EitherT ServantErr IO Note
+putNote :: User -> TeamId -> NoteId -> UpdateNoteReq -> EitherT ServantErr IO Note
 putNote u tid nid note = liftIO (Model.updateNote (User.id u) tid nid note) `catches` handlers
 
 deleteNote :: User -> TeamId -> NoteId -> EitherT ServantErr IO ()
