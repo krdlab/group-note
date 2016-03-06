@@ -24,3 +24,11 @@ data NewTeamReq = NewTeamReq
 instance FromJSON NewTeamReq where
     parseJSON = withObject "NewTeamReq" $ \o ->
         NewTeamReq <$> o .: "id_name" <*> o .: "name"
+
+data UpdateTeamReq = UpdateTeamReq
+    { updateName :: Text
+    }
+    deriving (Eq, Show)
+instance FromJSON UpdateTeamReq where
+    parseJSON = withObject "UpdateTeamReq" $ \o ->
+        UpdateTeamReq <$> o .: "name"

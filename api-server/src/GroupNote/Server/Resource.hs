@@ -28,13 +28,14 @@ import qualified GroupNote.Model as Model
 import GroupNote.Model (SessionToken, InviteCode, TeamId, NoteId)
 import GroupNote.Model.Member (MemberRes)
 import GroupNote.Model.Note (Note, NewNoteReq)
-import GroupNote.Model.Team (Team, NewTeamReq)
+import GroupNote.Model.Team (Team, NewTeamReq, UpdateTeamReq)
 import GroupNote.Model.User (User)
 import qualified GroupNote.Model.User as User
 
 type API =
          Authorized User :> "teams" :> Get '[JSON] [Team]
     :<|> Authorized User :> "teams" :> ReqBody '[JSON] NewTeamReq :> Post '[JSON] Team
+    :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> ReqBody '[JSON] UpdateTeamReq :> Put '[JSON] Team
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> Delete '[] ()
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "invite-code" :> Post '[JSON] Text
     :<|> Authorized User :> "teams" :> Capture "tid" TeamId :> "members" :> Get '[JSON] [MemberRes]
@@ -46,7 +47,7 @@ type API =
 
 server :: Server API
 server =
-         getTeams :<|> postTeams :<|> deleteTeam
+         getTeams :<|> postTeams :<|> putTeam :<|> deleteTeam
     :<|> postInvite
     :<|> getMembers
     :<|> getNotes
@@ -58,6 +59,9 @@ getTeams u = liftIO $ Model.listTeams (User.id u)
 
 postTeams :: User -> NewTeamReq -> EitherT ServantErr IO Team
 postTeams u r = liftIO $ Model.createTeam (User.id u) r
+
+putTeam :: User -> TeamId -> UpdateTeamReq -> EitherT ServantErr IO Team
+putTeam u tid ut = liftIO (Model.updateTeam (User.id u) tid ut) `catches` handlers
 
 deleteTeam :: User -> TeamId -> EitherT ServantErr IO ()
 deleteTeam u tid = liftIO (Model.deleteTeam (User.id u) tid) `catches` handlers

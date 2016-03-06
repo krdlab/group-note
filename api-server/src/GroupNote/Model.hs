@@ -27,7 +27,7 @@ import GroupNote.Model.Session (Session, session)
 import qualified GroupNote.Model.SessionWithInvite as SessionWithInvite
 import GroupNote.Model.SessionWithInvite (sessionWithInvite, piSessionWithInvite, InsertSessionWithInvite(..))
 import qualified GroupNote.Model.Team as Team
-import GroupNote.Model.Team (Team, team, NewTeamReq(..))
+import GroupNote.Model.Team (Team, team, NewTeamReq(..), UpdateTeamReq)
 import qualified GroupNote.Model.Member as Member
 import GroupNote.Model.Member (Member, member, MemberRes(..))
 import qualified GroupNote.Model.Note as Note
@@ -240,6 +240,23 @@ createTeam uid req = do
         Member.createdAt'   <-# value time
         return unitPlaceHolder
 
+updateTeam :: UserId -> TeamId -> UpdateTeamReq -> IO Team
+updateTeam uid tid ut = do
+    time <- getCurrentLocalTime
+    transaction $ \conn -> do
+        ts <- select' conn queryTeamByIdAndOwnerId (tid, uid)
+        when (null ts) $
+            throwM $ ResourceNotFound $ "team not found: id = " <> show tid
+        void $ runUpdate conn target ((tid, Team.updateName ut), time)
+    reference $ \conn -> head <$> select' conn queryTeamById tid
+  where
+    target = derivedUpdate $ \proj -> do
+        (phTid,     ()) <- placeholder (\ph -> wheres $ proj ! Team.id' .=. ph)
+        (phName,    ()) <- placeholder (\ph -> Team.name' <-# ph)
+        (phUpdated, ()) <- placeholder (\ph -> Team.updatedAt' <-# ph)
+        Team.version' <-# proj ! Team.version' .+. value 1
+        return (phTid >< phName >< phUpdated)
+
 deleteTeam :: UserId -> TeamId -> IO ()
 deleteTeam uid tid = transaction $ \conn -> do
     ts <- select' conn queryTeamByIdAndOwnerId (tid, uid)
@@ -408,6 +425,12 @@ queryTeamByUserId = relation' . placeholder $ \ph -> do
     on $ m ! Member.teamId' .=. t ! Team.id'
     wheres $ m ! Member.userId' .=. ph
     asc $ t ! Team.name'
+    return t
+
+queryTeamById :: Relation TeamId Team
+queryTeamById = relation' . placeholder $ \ph -> do
+    t <- query team
+    wheres $ t ! Team.id' .=. ph
     return t
 
 queryTeamByIdName :: Relation Text Team
