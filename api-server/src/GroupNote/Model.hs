@@ -24,8 +24,8 @@ import qualified GroupNote.Model.Invite as Invite
 import GroupNote.Model.Invite (Invite, invite)
 import qualified GroupNote.Model.Session as Session
 import GroupNote.Model.Session (Session, session)
-import qualified GroupNote.Model.SessionWithInvite as SessionWithInvite
-import GroupNote.Model.SessionWithInvite (sessionWithInvite, piSessionWithInvite, InsertSessionWithInvite(..))
+import qualified GroupNote.Model.InviteSession as InviteSession
+import GroupNote.Model.InviteSession (inviteSession, piInviteSession, InsertInviteSession(..))
 import qualified GroupNote.Model.Team as Team
 import GroupNote.Model.Team (Team, team, NewTeamReq, UpdateTeamReq)
 import qualified GroupNote.Model.Member as Member
@@ -115,10 +115,10 @@ saveState' conn s state = do
 
 associateInvite' :: IConnection conn => conn -> Session -> Invite -> IO ()
 associateInvite' conn s i = do
-    let ins = InsertSessionWithInvite (Session.id s) (Invite.id i)
-    void $ runInsert conn insertSessionWithInvite ins
+    let ins = InsertInviteSession (Session.id s) (Invite.id i)
+    void $ runInsert conn insertInviteSession ins
   where
-    insertSessionWithInvite = derivedInsert piSessionWithInvite
+    insertInviteSession = derivedInsert piInviteSession
 
 getStateBySessionToken :: SessionToken -> IO ByteString
 getStateBySessionToken token = reference $ \conn -> do
@@ -384,10 +384,10 @@ queryInvitedTeamBySessionToken = relation' $ do
 queryInviteBySessionToken :: Relation Text Invite
 queryInviteBySessionToken = relation' $ do
     (phSession, s) <- query' querySessionByToken
-    swi <- query sessionWithInvite
-    i <- query invite
-    on $ s ! Session.id' .=. swi ! SessionWithInvite.sessionId'
-    on $ swi ! SessionWithInvite.inviteId' .=. i ! Invite.id'
+    is <- query inviteSession
+    i  <- query invite
+    on $ s ! Session.id' .=. is ! InviteSession.sessionId'
+    on $ is ! InviteSession.inviteId' .=. i ! Invite.id'
     return (phSession, i)
 
 queryUserBySessionToken :: Relation Text User

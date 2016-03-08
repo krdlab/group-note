@@ -69,14 +69,14 @@ CREATE TABLE IF NOT EXISTS `session_state` (
   CONSTRAINT `fk_sessoin_state_sessoin` FOREIGN KEY (`session_id`) REFERENCES `session` (`id`)
 );
 
-DROP TABLE IF EXISTS `session_with_invite`;
-CREATE TABLE IF NOT EXISTS `session_with_invite` (
+DROP TABLE IF EXISTS `invite_session`;
+CREATE TABLE IF NOT EXISTS `invite_session` (
   `session_id`  INTEGER NOT NULL PRIMARY KEY,
   `invite_id`   INTEGER NOT NULL,
-  CONSTRAINT `fk_session_with_invite_session` FOREIGN KEY (`session_id`) REFERENCES `session` (`id`),
-  CONSTRAINT `fk_session_with_invite_invite` FOREIGN KEY (`invite_id`) REFERENCES `invite` (`id`)
+  CONSTRAINT `fk_invite_session_session` FOREIGN KEY (`session_id`) REFERENCES `session` (`id`),
+  CONSTRAINT `fk_invite_session_invite` FOREIGN KEY (`invite_id`) REFERENCES `invite` (`id`)
 );
-CREATE INDEX `fk_session_with_invite_invite_idx` ON `session_with_invite` (`invite_id`);
+CREATE INDEX `fk_invite_session_invite_idx` ON `invite_session` (`invite_id`);
 
 DROP TABLE IF EXISTS `user_session`;
 CREATE TABLE IF NOT EXISTS `user_session` (

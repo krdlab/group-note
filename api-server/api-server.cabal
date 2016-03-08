@@ -26,7 +26,7 @@ library
                      , GroupNote.Model.Note
                      , GroupNote.Model.Session
                      , GroupNote.Model.SessionState
-                     , GroupNote.Model.SessionWithInvite
+                     , GroupNote.Model.InviteSession
                      , GroupNote.Model.Team
                      , GroupNote.Model.User
                      , GroupNote.Model.UserSession
