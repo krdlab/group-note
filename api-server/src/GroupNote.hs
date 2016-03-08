@@ -5,8 +5,9 @@ module GroupNote
     , Options(..)
     ) where
 
-import Network.Wai (Application)
+import Network.Wai (Application, Middleware)
 import Network.Wai.Handler.Warp (run)
+import Network.Wai.Middleware.RequestLogger (logStdoutDev, logStdout)
 import Servant
 
 import GroupNote.Config (load, AppConf(..))
@@ -28,7 +29,15 @@ start opts = do
         Right c -> return c
         Left  e -> error . show $ e
     -- TODO: CORS
-    run 3000 $ app conf
+    run 3000 $ stack [logger debug] $ app conf
+
+stack :: [Middleware] -> Application -> Application
+stack ms a = foldr id a ms
+
+logger :: Bool -> Middleware
+logger debug
+    | debug     = logStdoutDev
+    | otherwise = logStdout
 
 app :: AppConf -> Application
 app conf = serve api $ server conf
