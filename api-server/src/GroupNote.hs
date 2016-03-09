@@ -5,8 +5,10 @@ module GroupNote
     , Options(..)
     ) where
 
+import Data.Monoid ((<>))
 import Network.Wai (Application, Middleware)
 import Network.Wai.Handler.Warp (run)
+import Network.Wai.Middleware.Cors (cors, simpleCorsResourcePolicy, CorsResourcePolicy(..), simpleResponseHeaders)
 import Network.Wai.Middleware.RequestLogger (logStdoutDev, logStdout)
 import Servant
 
@@ -21,23 +23,28 @@ data Options = Options
 
 start :: Options -> IO ()
 start opts = do
-    print opts
     let path  = optionConfigPath opts
         debug = optionDebugMode opts
-    res  <- load path
-    conf <- case res of
-        Right c -> return c
-        Left  e -> error . show $ e
-    -- TODO: CORS
-    run 3000 $ stack [logger debug] $ app conf
+    conf <- load' path
+    run 3000 $ stack (middles debug) (app conf)
+  where
+    load' path = either (error . show) id <$> load path
 
 stack :: [Middleware] -> Application -> Application
 stack ms a = foldr id a ms
 
-logger :: Bool -> Middleware
-logger debug
-    | debug     = logStdoutDev
-    | otherwise = logStdout
+middles :: Bool -> [Middleware]
+middles debug
+    | debug     = [logStdoutDev, cors']
+    | otherwise = [logStdout]
+
+cors' :: Middleware
+cors'  = cors $ const (Just policy)
+  where
+    policy = simpleCorsResourcePolicy {
+          corsMethods = ["GET", "POST", "PUT", "DELETE"]
+        , corsRequestHeaders = simpleResponseHeaders <> ["Authorization"]
+        }
 
 app :: AppConf -> Application
 app conf = serve api $ server conf

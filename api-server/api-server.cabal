@@ -41,6 +41,7 @@ library
                      , aeson >= 0.10
                      , servant-server
                      , wai
+                     , wai-cors
                      , wai-extra
                      , warp
                      , bytestring
